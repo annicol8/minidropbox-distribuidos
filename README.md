@@ -12,8 +12,8 @@ Sistema cliente-servidor en Java que permite tener sincronizada una carpeta loca
 
 
 ## Protoclo de comunicación (TCP)
-'HELLO <usuario>' -> 'OK'
-'LIST' -> 'OK' + mostrar lista de ficheros que hay en el servidor
-'PUT <nombre> <fecha>' -> 'OK' + enviar bytes -> 'OK'
-'GET' <nombre> -> 'OK' + recepción de bytes
-'BYE' -> cierre de conexión
+* `HELLO <usuario>` -> `OK`
+* `LIST` -> `OK` + lista de ficheros en el servidor
+* `PUT <nombre> <fecha>` -> `OK` + envío de bytes -> `OK`
+* `GET <nombre>` -> `OK` + recepción de bytes
+* `BYE` -> Cierre de conexión
