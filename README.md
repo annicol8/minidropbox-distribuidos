@@ -1,4 +1,4 @@
-# minidropbox-distribuidos - Ana Nicolás y Julia Saenz
+# minidropbox-distribuidos - Ana Nicolás y Julia Sáenz
 
 SISTEMA DE SINCRONIZACIÓN DE FICHEROS EN RED
 
