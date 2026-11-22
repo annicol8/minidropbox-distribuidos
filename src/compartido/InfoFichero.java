@@ -20,7 +20,7 @@ public class InfoFichero {
 		this.hash = hash;
 	}
 	
-	public String getNOmbre() { return nombre; }
+	public String getNombre() { return nombre; }
 	public long getTamano() { return tamano; }
 	public long getFecha()    { return fecha; }
     public String getHash()   { return hash; }
