@@ -1,10 +1,8 @@
 package compartido;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.*;
 
 public class InfoFichero {
 
@@ -20,24 +18,24 @@ public class InfoFichero {
 		this.hash = hash;
 	}
 	
-	public String getNOmbre() { return nombre; }
+	public String getNombre() { return nombre; }
 	public long getTamano() { return tamano; }
 	public long getFecha()    { return fecha; }
     public String getHash()   { return hash; }
     
     public void escribir(DataOutputStream out) throws IOException {
-    	out.writeUTF(nombre);
-        out.writeLong(tamano);
-        out.writeLong(fecha);
-        out.writeUTF(hash);
+    	Protocolo.enviarTexto(out, nombre);
+    	out.writeLong(tamano);
+    	out.writeLong(fecha);
+    	Protocolo.enviarTexto(out, hash);
     }
-    
+
     public static InfoFichero leer(DataInputStream in) throws IOException {
-    	String nombre = in.readUTF();
-        long tamano = in.readLong();
-        long fecha = in.readLong();
-        String hash = in.readUTF();
-        return new InfoFichero(nombre, tamano, fecha, hash);
+    	String nombre = Protocolo.recibirTexto(in);
+    	long tamano = in.readLong();
+    	long fecha = in.readLong();
+    	String hash = Protocolo.recibirTexto(in);
+    	return new InfoFichero(nombre, tamano, fecha, hash);
     }
     
     @Override

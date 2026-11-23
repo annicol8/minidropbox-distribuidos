@@ -23,20 +23,11 @@ public class Escaner {
 	
 	private Escaner()  { }
 	
-	// main de prueba
-	public static void main(String[] args) {
-		File carpeta = new File("carpetaPruebas");
-		System.out.println("Ruta " + carpeta.getAbsolutePath());
-				
-		try {
-			Map<String, InfoFichero> resultado = escanear(carpeta);
-			for (InfoFichero info: resultado.values()) {
-				System.out.println(info.toString());
-	        }
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
+	public static boolean nombreValido(String nombre) {
+        return nombre != null && !nombre.isEmpty()
+                && !nombre.contains("/") && !nombre.contains("\\")
+                && !nombre.equals("..") && !nombre.equals(".")
+                && !nombre.endsWith(".tmp")
+                && nombre.chars().noneMatch(c -> c < 32); //evitar tener caracteres de control
+    }
 }
