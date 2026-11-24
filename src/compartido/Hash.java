@@ -8,22 +8,25 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class Hash {
+	
+	private static final int TAM_BLOQUE = 8192;
 
 	private Hash() { }
 
 	public static String sha256(File f) throws IOException {
-		try (InputStream in = new FileInputStream(f)) {
+		try (FileInputStream in = new FileInputStream(f)) {
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 
-			byte[] dataBytes = new byte[8192];
+			byte[] dataBytes = new byte[TAM_BLOQUE];
 			int nread;
 			while ((nread = in.read(dataBytes)) != -1) {
 				md.update(dataBytes, 0, nread);
 			}
+			byte[] mdbytes = md.digest();
 
-			StringBuilder sb = new StringBuilder();
-			for (byte x : md.digest()) {
-				sb.append(String.format("%02x", x & 0xff));
+			StringBuffer sb = new StringBuffer();
+			for (int i=0; i<mdbytes.length; i++) {
+				sb.append(Integer.toString((mdbytes[i] & 0xff) + 0x100, 16).substring(1));
 			}
 			return sb.toString();
 		} catch (NoSuchAlgorithmException e) {
