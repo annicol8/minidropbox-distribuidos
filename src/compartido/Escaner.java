@@ -2,32 +2,35 @@ package compartido;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class Escaner {
-	public static Map<String, InfoFichero> escanear(File carpeta) throws IOException {
-		Map<String, InfoFichero> mapa = new TreeMap<>();
+	
+	private Escaner() { }
+	
+	public static Map<String, InfoFichero> escanearCarpeta(File carpeta) throws IOException {
+		Map<String, InfoFichero> mapa = new HashMap<>();
+		
+		if(carpeta == null) return mapa;
+		if (!carpeta.exists()) carpeta.mkdirs();
+		if(!carpeta.isDirectory()) {
+			throw new IOException("La ruta indicada no es un directorio: " + carpeta.getAbsolutePath());
+		}
+		
 		File[] ficheros = carpeta.listFiles();
 		if (ficheros == null) {
 			throw new IOException("No se puede leer la carpeta " + carpeta);
 		}
 		
-		for (File f : ficheros) {
-			if (f.isFile() && !f.getName().endsWith(".tmp")) {
-				mapa.put(f.getName(), new InfoFichero(f.getName(), f.length(), f.lastModified(), Hash.sha256(f)));
-			}
-		}
-		return mapa;
+		for (int i = 0; i < ficheros.length; i++) {
+            File f = ficheros[i];
+            if (f.isFile() && Protocolo.esNombreValido(f.getName())) {
+                String hash = Hash.sha256(f);
+                mapa.put(f.getName(), new InfoFichero(f.getName(), f.length(), f.lastModified(), hash));
+            }
+        }
+        return mapa;
 	}
 	
-	private Escaner()  { }
-	
-	public static boolean nombreValido(String nombre) {
-        return nombre != null && !nombre.isEmpty()
-                && !nombre.contains("/") && !nombre.contains("\\")
-                && !nombre.equals("..") && !nombre.equals(".")
-                && !nombre.endsWith(".tmp")
-                && nombre.chars().noneMatch(c -> c < 32); //evitar tener caracteres de control
-    }
 }

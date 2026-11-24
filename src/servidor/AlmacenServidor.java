@@ -11,45 +11,42 @@ import compartido.*;
 public class AlmacenServidor {
 	
 	private final File carpeta;
-	private final ConcurrentHashMap<String, InfoFichero> indice = new ConcurrentHashMap<>();
+	private final Map<String, InfoFichero> indice = new ConcurrentHashMap<>();
 	//indice en memoria para consultar los fichero que hay más rapidamente
 	
 	public AlmacenServidor(File carpeta) throws IOException {
 		this.carpeta = carpeta;
-		carpeta.mkdirs();
-		indice.putAll(Escaner.escanear(carpeta)); 
+		if (!carpeta.exists()) {
+			carpeta.mkdirs();
+		}
+		borrarTemporales();
+		indice.putAll(Escaner.escanearCarpeta(carpeta)); 
 	}
 	
-	public static boolean nombreValido(String nombre) {
-		return nombre != null && !nombre.isEmpty() 
-				&& !nombre.contains("/") && !nombre.contains("\\")
-	            && !nombre.equals("..") && !nombre.equals(".")
-	            && !nombre.endsWith(".tmp");
-	    }
-	
-	public File fichero(String nombre) {
-		return new File(carpeta, nombre);
-	}
-	
-	public File temporal(String nombre) {
-		return new File(carpeta, nombre + "." + Thread.currentThread().getId() + ".tmp");
-	}
-	
-	public InfoFichero get(String nombre) {
-		return indice.get(nombre);
-	}
+	private void borrarTemporales() {
+		File[] ficheros = carpeta.listFiles();
+		if (ficheros == null) {
+			return;
+		}
+		
+		for (File f: ficheros) {
+			if (f.isFile() && f.getName().endsWith(".tmp")) {
+				if (!f.delete()) {
+					System.err.println("No se pudo borrar el temporal " + f.getName());
+				}
+			}
+		}
+	} 
 	
 	public List<InfoFichero> listar() {
 		return new ArrayList<>(indice.values());
 	}
 	
-	//se llama cunado el temporal esta completo: lo mueve a su sitio y actualiza el indice
-	public void confirmar(String nombre, File temporal) throws IOException {
-		InfoFichero info = new InfoFichero(nombre, temporal.length(), temporal.lastModified(), Hash.sha256(temporal));
-		synchronized (this) { //mover y actualizar el indice de una sola vez
-			Files.move(temporal.toPath(), fichero(nombre).toPath(), StandardCopyOption.REPLACE_EXISTING);
-			indice.put(nombre, info);
-			
-		}
+	public InfoFichero obtener(String nombre) {
+		return indice.get(nombre);
+	}
+	
+	public File getFichero(String nombre) {
+		return new File(carpeta, nombre);
 	}
  }

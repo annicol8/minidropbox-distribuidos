@@ -6,8 +6,10 @@ import java.net.Socket;
 import java.util.List;
 
 public class AtenderCliente implements Runnable{
+	
 	private final Socket socket;
 	private final AlmacenServidor almacen;
+	private String usuario = "user";
 	
 	public AtenderCliente(Socket s, AlmacenServidor a) {
 		this.socket = s;
@@ -18,68 +20,56 @@ public class AtenderCliente implements Runnable{
 	public void run() {
 		// TODO Auto-generated method stub
 		try (Socket s = socket;
-			BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream(), "UTF-8"));
-	        PrintWriter out = new PrintWriter(s.getOutputStream(), true)) 
+			DataInputStream in = new DataInputStream(s.getInputStream());
+	        DataOutputStream out = new DataOutputStream(new BufferedOutputStream(s.getOutputStream())) ) 
 		{
-			String usuario = "?";
-			String comando;
-			
-			while ((comando = in.readLine()) != null)  {
-				comando = comando.trim();
-				if (comando.isEmpty()) {
-					continue;
-				}
-				
-				switch(comando) {
-					case Protocolo.HELLO: 
-						String nomUsuario = in.readLine();
-						if (nomUsuario == null || nomUsuario.trim().isEmpty()) {
-							enviarError(out, "Falta el nombre del usuario");
-						} else {
-							usuario = nomUsuario.trim();
-							System.out.println("Conectado: " + usuario);
-							out.println(Protocolo.OK);
-						}
-						break;
-					
-					case Protocolo.LIST:
-                        List<InfoFichero> lista = almacen.listar();
-                        out.println(Protocolo.OK);
-                        out.println(Integer.toString(lista.size()));
-                        for (InfoFichero f : lista) {
-                            f.escribir(out);
-                        }
-                        break;
-					
-					case Protocolo.BYE:
-						System.out.println("Desconectado: "+ usuario);
-						return;
-					
-					default:
-						enviarError(out, "Comando desconocido: " + comando);
-						break;
-				}
-			}
-			
-			System.out.println("Cliente desconectado: "+ usuario);
-			
+	        System.out.println("Conexión desde " + s.getInetAddress().getHostAddress() + ":" + s.getPort());
+	       
+	        boolean seguir = true;
+	        while(seguir) {
+	        	String comando = Transferencia.leerLinea(in);
+	        	
+	        	if (comando.equals(Protocolo.HELLO)) {
+	        		
+	        		String nombre = Transferencia.leerLinea(in);
+	        		if (nombre.trim().isEmpty()) {
+	        			enviarError(out, "Nombre de usuario vacío");
+	        		}
+	        		usuario = nombre;
+	        		System.out.println("Sesion iniciada: " + usuario);
+	        		Transferencia.escribirLinea(out, Protocolo.OK);
+	                out.flush();
+	                
+	        	} else if (comando.equals(Protocolo.LIST)) {
+	        		
+	        		List<InfoFichero> lista = almacen.listar();
+	        		Transferencia.escribirLinea(out, Protocolo.OK);
+	        		Transferencia.escribirLinea(out,  Integer.toString(lista.size()));
+	        		for (InfoFichero info :  lista) {
+	        			info.escribir(out);
+	        		}
+	        		out.flush();
+	        		
+	        	} else if (comando.equals(Protocolo.BYE)) {
+	        		seguir = false;
+	        		
+	        	} else {
+                    enviarError(out, "Comando desconocido: " + comando);
+                }
+	        }
+	        System.out.println("[" + usuario + "] se ha desconectado");
+	        
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			System.out.println("Error con el cliente: "+ e.getMessage());
-		}		
-	
+			e.printStackTrace();
+		}
+			
 	}
 	
-	private void enviarLinea(BufferedWriter out, String texto) throws IOException {
-		out.write(texto);
-		out.newLine();
-		out.flush();
+	private void enviarError(DataOutputStream out, String motivo) throws IOException {
+		Transferencia.escribirLinea(out, Protocolo.ERROR);
+        Transferencia.escribirLinea(out, motivo);
+        out.flush();
 	}
-	
-	private void enviarError(PrintWriter out, String motivo) {
-        out.println(Protocolo.ERROR);
-        out.println(motivo);
-    }
-	
 	
 }

@@ -1,11 +1,7 @@
 package compartido;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-
 public class Protocolo {
 	public static final int PUERTO = 7777;
-	private static final int MAX_TEXTO = 65535;
 	
 	public static final String HELLO = "HELLO";
 	public static final String LIST = "LIST";
@@ -18,23 +14,27 @@ public class Protocolo {
 	
 	private Protocolo() { }  
 	
-	public static void enviarTexto(DataOutputStream out, String texto) throws IOException {
-        byte[] bytes = texto.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length > MAX_TEXTO) {
-            throw new IOException("Texto demasiado largo");
+	//Comprobamos que el nombre sea un fichero simple para no romper el protocolo
+	public static boolean esNombreValido(String nombre) {
+		if (nombre == null || nombre.isEmpty()) return false;
+		
+		if (!nombre.equals(nombre.trim())) return false;
+		
+		if (nombre.equals(".") || nombre.contains("..")) return false;
+		
+		if (nombre.contains("/") || nombre.contains("\\")) return false;
+		
+		if (nombre.endsWith(".tmp")) return false;
+        
+        // c < 32: caracteres de control (incluye \n y \r)
+        // c > 255: writeBytes solo conserva 1 byte por carácter
+        for (int i = 0; i < nombre.length(); i++) {
+            char c = nombre.charAt(i);
+            if (c < 32 || c > 255) {
+                return false;
+            }
         }
-        out.writeInt(bytes.length);
-        out.write(bytes);
-    }
-
-    public static String recibirTexto(DataInputStream in) throws IOException {
-        int n = in.readInt();
-        if (n < 0 || n > MAX_TEXTO) {
-            throw new IOException("Longitud de texto no válida: " + n);
-        }
-        byte[] bytes = new byte[n];
-        in.readFully(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
-    }
+        return true;
+	}
 	
 }
