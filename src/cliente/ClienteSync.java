@@ -149,6 +149,7 @@ public class ClienteSync {
 		// TODO Auto-generated method stub
 
 		ClienteSync cliente = null;
+		Planificador planificador = null;
 		try (BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in))) {
             String host = pedirDato(teclado, "Servidor (ej. localhost): ");
 			String usuario = pedirDato(teclado, "Usuario: ");
@@ -156,6 +157,8 @@ public class ClienteSync {
 
 			cliente = new ClienteSync(host, usuario, new File(carpeta));
 			Sincronizador sincronizador = new Sincronizador(cliente);
+			planificador = new Planificador(sincronizador, 15);
+			planificador.iniciar();
 			System.out.println("Conectado. Comandos: list | put <fichero> | get <fichero> | sync | salir");
 
 			String linea;
@@ -223,6 +226,9 @@ public class ClienteSync {
 			System.out.println("Error de conexión: " + e.getMessage());
 		}finally {
 			if (cliente != null) {
+				if (planificador != null ){
+					planificador.detener();
+				}
 				cliente.cerrar();
 				System.out.println("Desconectado.");
 			}
