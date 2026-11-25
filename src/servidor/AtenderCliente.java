@@ -20,7 +20,7 @@ public class AtenderCliente implements Runnable{
 	public void run() {
 		// TODO Auto-generated method stub
 		try (Socket s = socket;
-			DataInputStream in = new DataInputStream(s.getInputStream());
+			DataInputStream in = new DataInputStream(new BufferedInputStream(s.getInputStream()));
 	        DataOutputStream out = new DataOutputStream(new BufferedOutputStream(s.getOutputStream())) ) 
 		{
 	        System.out.println("Conexión desde " + s.getInetAddress().getHostAddress() + ":" + s.getPort());
@@ -34,11 +34,13 @@ public class AtenderCliente implements Runnable{
 	        		String nombre = Transferencia.leerLinea(in);
 	        		if (nombre.trim().isEmpty()) {
 	        			enviarError(out, "Nombre de usuario vacío");
+	        		} else {
+	        			usuario = nombre;
+		        		System.out.println("Sesion iniciada: " + usuario);
+		        		Transferencia.escribirLinea(out, Protocolo.OK);
+		                out.flush();
 	        		}
-	        		usuario = nombre;
-	        		System.out.println("Sesion iniciada: " + usuario);
-	        		Transferencia.escribirLinea(out, Protocolo.OK);
-	                out.flush();
+	        		
 	                
 	        	} else if (comando.equals(Protocolo.LIST)) {
 	        		
@@ -50,6 +52,64 @@ public class AtenderCliente implements Runnable{
 	        		}
 	        		out.flush();
 	        		
+	        	} else if (comando.equals(Protocolo.PUT)) {
+	        		String nombre = Transferencia.leerLinea(in);
+	        		long fecha = Transferencia.leerLong(in);
+	        		if (fecha < 0 ) {
+	        			enviarError(out, "Fecha no válida");
+	        			continue;
+	        		}
+	        		
+	        		if (!Protocolo.esNombreValido(nombre)) {
+	                    enviarError(out, "Nombre de fichero no válido");
+	                    continue;
+	                }
+	        		
+	        		InfoFichero actual = almacen.obtener(nombre);
+	        		if (actual != null && actual.getFecha() >= fecha) {
+	        			enviarError(out, "El servidor ya tiene una versión igual o más reciente");
+	                    continue;
+	        		}
+	        		Transferencia.escribirLinea(out, Protocolo.OK);
+	        		out.flush();
+	        		
+	        		File tmp = almacen.crearTemporal(nombre);
+	        		boolean guardado;
+	        		try {
+	        			Transferencia.recibirFichero(in, tmp);
+	        	        guardado = almacen.confirmarSubida(nombre, tmp, fecha);
+	        	    } finally {
+	        	    	if (tmp.exists() && !tmp.delete()) {
+	        	    		System.err.println("No se pudo borrar el temporal " + tmp.getName());
+	        	    	}
+	        		}
+	        		
+	        		if (guardado) {
+	        			System.out.println("[" + usuario + "] subió " + nombre);
+			            Transferencia.escribirLinea(out, Protocolo.OK);
+			            out.flush();
+	        		} else {
+	        			enviarError(out, "Otro cliente subió antes una versión igual o más reciente");
+	                }
+	        		
+	        	} else if (comando.equals(Protocolo.GET)) {
+	        		String nombre = Transferencia.leerLinea(in);
+	        		if (!Protocolo.esNombreValido(nombre)) {
+	                    enviarError(out, "Nombre de fichero no válido");
+	                    continue;
+	                }
+	        		
+	        		InfoFichero info = almacen.obtener(nombre);
+	        		if (info == null) {
+	        			enviarError(out, "El fichero no existe: " + nombre);
+	                    continue;
+	        		}
+	        		
+	        		Transferencia.escribirLinea(out, Protocolo.OK);
+	                Transferencia.escribirLinea(out, Long.toString(info.getFecha()));
+	                Transferencia.enviarFichero(almacen.getFichero(nombre), out);
+	                System.out.println("[" + usuario + "] descargó " + nombre);
+	        		
 	        	} else if (comando.equals(Protocolo.BYE)) {
 	        		seguir = false;
 	        		
@@ -59,6 +119,8 @@ public class AtenderCliente implements Runnable{
 	        }
 	        System.out.println("[" + usuario + "] se ha desconectado");
 	        
+		} catch(EOFException e) {
+			System.out.println("[" + usuario + "] cerró la conexión sin bye." );
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
