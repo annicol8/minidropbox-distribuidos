@@ -4,13 +4,7 @@ import compartido.InfoFichero;
 import compartido.Protocolo;
 import compartido.Transferencia;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -34,7 +28,12 @@ public class ClienteSync {
 		this.socket = new Socket(host, Protocolo.PUERTO);
 		this.in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 		this.out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-		saludar(usuario);
+		try {
+			saludar(usuario);
+		} catch (IOException e) {
+			try { socket.close(); } catch (IOException ignored) { }
+			throw e;
+		}
 	}
 	public File getCarpetaLocal(){
 		return carpetaLocal;
@@ -101,6 +100,7 @@ public class ClienteSync {
 		esperarOK();
 		// Transferencia del fichero y confirmación
 		Transferencia.enviarFichero(ficheroLocal, out);
+		esperarOK();
 	}
 
 	public synchronized void descargar(String nombre) throws IOException {
@@ -143,10 +143,87 @@ public class ClienteSync {
         }
     }
 
+	//------------------ CONSOLA ------------------
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 
-	}
+		ClienteSync cliente = null;
+		try (BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in))) {
+            String host = pedirDato(teclado, "Servidor (ej. localhost): ");
+			String usuario = pedirDato(teclado, "Usuario: ");
+			String carpeta = pedirDato(teclado, "Carpeta local: ");
+
+			cliente = new ClienteSync(host, usuario, new File(carpeta));
+			System.out.println("Conectado. Comandos: list | put <fichero> | get <fichero> | sync | salir");
+
+			String linea;
+			while ((linea = teclado.readLine()) != null){
+				linea = linea.trim();
+				if (linea.isEmpty()){
+					continue;
+				}
+
+				String[] partes = linea.split("\\s+", 2);
+				String comando = partes[0].toLowerCase();
+
+				try {
+                    switch (comando){
+						case "list":
+							List<InfoFichero> lista = cliente.listar();
+							if (lista.isEmpty()){
+								System.out.println("No hay ficheros en el servidor");
+							}else{
+								System.out.println("---LISTA DE FICHEROS---");
+								for (int i = 0; i < lista.size(); i++){
+									System.out.println(lista.get(i));
+								}
+							}
+							break;
+
+						case "put":
+							if (partes.length <2){
+								System.out.println("El uso de put es: put <fichero>");
+							}else{
+								String nombrePut = partes[1].trim();
+								cliente.subir(nombrePut);
+								System.out.println("ÉXITO. Se ha subido el fichero: " + nombrePut);
+							}
+							break;
+
+						case "get":
+							if (partes.length <2){
+								System.out.println("El uso de get es: get <fichero>");
+							}else{
+								String nombreGet = partes[1].trim();
+								cliente.descargar(nombreGet);
+								System.out.println("ÉXITO. Se ha descargado el fichero: " + nombreGet);
+							}
+							break;
+						case "sync":
+							System.out.println();
+							break;
+						case "salir":
+							return;
+                        default:
+							System.out.println("Comando no reconocido");
+					}
+                } catch (IOException e) {
+					System.out.println("Error: " + e.getMessage());
+					if (cliente.socket.isClosed()) {
+						break;
+					}
+                }
+            }
+        } catch (IOException e) {
+			System.out.println("Error de conexión: " + e.getMessage());
+		}finally {
+			if (cliente != null) {
+				cliente.cerrar();
+				System.out.println("Desconectado.");
+			}
+        }
+
+    }
 
 }
