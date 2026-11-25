@@ -155,6 +155,7 @@ public class ClienteSync {
 			String carpeta = pedirDato(teclado, "Carpeta local: ");
 
 			cliente = new ClienteSync(host, usuario, new File(carpeta));
+			Sincronizador sincronizador = new Sincronizador(cliente);
 			System.out.println("Conectado. Comandos: list | put <fichero> | get <fichero> | sync | salir");
 
 			String linea;
@@ -200,11 +201,14 @@ public class ClienteSync {
 								System.out.println("ÉXITO. Se ha descargado el fichero: " + nombreGet);
 							}
 							break;
+
 						case "sync":
-							System.out.println();
+							sincronizador.sincronizar();
 							break;
+
 						case "salir":
 							return;
+
                         default:
 							System.out.println("Comando no reconocido");
 					}
