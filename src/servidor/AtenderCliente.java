@@ -57,18 +57,18 @@ public class AtenderCliente implements Runnable{
 	        		long fecha = Transferencia.leerLong(in);
 	        		if (fecha < 0 ) {
 	        			enviarError(out, "Fecha no válida");
-	        			return;
+	        			continue;
 	        		}
 	        		
 	        		if (!Protocolo.esNombreValido(nombre)) {
 	                    enviarError(out, "Nombre de fichero no válido");
-	                    return;
+	                    continue;
 	                }
 	        		
 	        		InfoFichero actual = almacen.obtener(nombre);
 	        		if (actual != null && actual.getFecha() >= fecha) {
 	        			enviarError(out, "El servidor ya tiene una versión igual o más reciente");
-	                    return;
+	                    continue;
 	        		}
 	        		Transferencia.escribirLinea(out, Protocolo.OK);
 	        		out.flush();
@@ -96,13 +96,13 @@ public class AtenderCliente implements Runnable{
 	        		String nombre = Transferencia.leerLinea(in);
 	        		if (!Protocolo.esNombreValido(nombre)) {
 	                    enviarError(out, "Nombre de fichero no válido");
-	                    return;
+	                    continue;
 	                }
 	        		
 	        		InfoFichero info = almacen.obtener(nombre);
 	        		if (info == null) {
 	        			enviarError(out, "El fichero no existe: " + nombre);
-	                    return;
+	                     continue;
 	        		}
 	        		
 	        		Transferencia.escribirLinea(out, Protocolo.OK);
