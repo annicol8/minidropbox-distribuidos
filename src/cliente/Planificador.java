@@ -1,6 +1,8 @@
 package cliente;
 
+import java.io.EOFException;
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +25,10 @@ public class Planificador {
                 try {
                     sincronizador.sincronizar();
                 } catch (IOException e) {
+                    if (e instanceof EOFException || e instanceof SocketException){
+                        System.err.println("[PLANIFICADOR] Conexión perdida. Sincronización automática detenida. Escribe cualquier comando para salir");
+                        scheduler.shutdown();
+                    }
                     System.err.println("[PLANIFICADOR] Error en la sincronización automática: " + e.getMessage());
                 }
 

@@ -6,6 +6,7 @@ import compartido.Transferencia;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -157,7 +158,7 @@ public class ClienteSync {
 
 			cliente = new ClienteSync(host, usuario, new File(carpeta));
 			Sincronizador sincronizador = new Sincronizador(cliente);
-			planificador = new Planificador(sincronizador, 15);
+			planificador = new Planificador(sincronizador, 60);
 			planificador.iniciar();
 			System.out.println("Conectado. Comandos: list | put <fichero> | get <fichero> | sync | salir");
 
@@ -216,11 +217,12 @@ public class ClienteSync {
 							System.out.println("Comando no reconocido");
 					}
                 } catch (IOException e) {
-					System.out.println("Error: " + e.getMessage());
-					if (cliente.socket.isClosed()) {
+					if (e instanceof EOFException || e instanceof SocketException) {
+						System.err.println("Se ha perdido la conexión con el servidor");
 						break;
 					}
-                }
+					System.out.println("Error: " + e.getMessage());
+				}
             }
         } catch (IOException e) {
 			System.out.println("Error de conexión: " + e.getMessage());
